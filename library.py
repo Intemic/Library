@@ -1,7 +1,13 @@
 import csv
 import os
 from dataclasses import dataclass, asdict
+import enum
 from random import getrandbits
+
+
+class Status(enum.Enum):
+    in_stock = "в наличии"
+    issued = "выдана"
 
 
 @dataclass
@@ -14,7 +20,7 @@ class Book:
     title: str = None
     author: str = None
     year: int = None
-    status: str = None
+    status: Status = None
 
     def get_info(self) -> str:
         """Вывод записи."""
@@ -101,7 +107,7 @@ class Library:
             author = Library.get_non_empty_value("Автор:", author)
             year = Library.get_non_empty_value("Год:", year)
 
-            obj = Book(getrandbits(32), title, author, year)
+            obj = Book(getrandbits(32), title, author, year, Status.in_stock.value)
 
             file_exist = os.path.exists(Library.FILE_NAME)
 
