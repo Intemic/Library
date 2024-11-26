@@ -5,11 +5,14 @@ from dataclasses import dataclass, asdict
 import enum
 from random import getrandbits
 
+
 class BadMinValue(Exception):
-    pass 
+    pass
+
 
 class BadMaxValue(Exception):
-    pass 
+    pass
+
 
 class Status(enum.Enum):
     in_stock = "в наличии"
@@ -20,7 +23,7 @@ class Status(enum.Enum):
 class Book:
     """Представляет запись о книге."""
 
-    PRINT_TEMPLATE = "{id:15} {title:50} {author:30} {year:4} {status:20}"
+    PRINT_TEMPLATE = "{id:15}{title:50} {author:30} {year:10} {status:20}"
 
     id: int = None
     title: str = None
@@ -39,7 +42,7 @@ class Library:
     # имя файла с данными
     FILE_NAME = "library.txt"
     # заголовок таблицы
-    HEADER = "{:4} {:^15} {:^50} {:^30} {:4} {:^20}".format(
+    HEADER = "{:4} {:15} {:50} {:30} {:10} {:20}".format(
         "№",
         "Id",
         "Название",
@@ -71,15 +74,13 @@ class Library:
 
     @staticmethod
     def get_records() -> list[Book]:
-        '''Возращает перечень книг.'''
+        """Возращает перечень книг."""
 
         records = []
         try:
-            with open(Library.FILE_NAME, encoding='utf-8') as f:
+            with open(Library.FILE_NAME, encoding="utf-8") as f:
                 records = [
-                    Book(**record) for record in csv.DictReader(
-                        f,  delimiter=';'
-                    )
+                    Book(**record) for record in csv.DictReader(f, delimiter=";")
                 ]
         except Exception:
             # не удалось открыть файл, библиотека пуста
@@ -89,21 +90,21 @@ class Library:
 
     @staticmethod
     def output_records(records: list[Book]) -> None:
-        '''Отображает список книг.'''
+        """Отображает список книг."""
 
         indx = 0
         print(Library.HEADER)
         for record in records:
             indx += 1
-            print(f'{indx:<5}', record.get_info())
+            print(f"{indx:<5}", record.get_info())
 
     @staticmethod
     def show_all_books():
-        '''Вывод данных библиотеки.'''
-        
+        """Вывод данных библиотеки."""
+
         records = Library.get_records()
         if not records:
-            print('Нет данных')
+            print("Нет данных")
         else:
             Library.output_records(records)
 
@@ -116,22 +117,27 @@ class Library:
         return value
 
     @staticmethod
-    def get_non_empty_value_int(text: str, value, min_val: int=None, max_value: int=None) -> str:
+    def get_non_empty_value_int(
+        text: str, value, min_value: int = None, max_value: int = None
+    ) -> str:
         """Получение не пустого значения, имитация "обязательного" поля."""
 
         while not value:
             try:
                 value = int(input(text).strip())
-                if min_val and value < min_value:
+                if min_value and value < min_value:
                     raise BadMinValue
-                if max_val and value > max_value:
+                if max_value and value > max_value:
                     raise BadMaxValue
             except BadMinValue:
-                print(f"Значение не может быть меньше { min_val }")
+                value = None
+                print(f"Значение не может быть меньше {min_value}")
             except BadMaxValue:
-                print(f"Значение не может быть больше { max_val }")
+                value = None
+                print(f"Значение не может быть больше {max_value}")
             except ValueError:
-                print("Ошибка, введите число")    
+                value = None
+                print("Ошибка, введите число")
         return value
 
     @staticmethod
@@ -170,7 +176,9 @@ class Library:
             title = Library.get_non_empty_value("Название:", title)
             author = Library.get_non_empty_value("Автор:", author)
             # будем отсчитывать мин год от книги "Слово о полку Игореве"
-            year = Library.get_non_empty_value_int("Год:", year, min_val=1185, max_value=datetime.now().year)
+            year = Library.get_non_empty_value_int(
+                "Год:", year, min_value=1185, max_value=datetime.now().year
+            )
 
             obj = Book(getrandbits(32), title, author, year, Status.in_stock.value)
 
@@ -200,33 +208,94 @@ class Library:
     @staticmethod
     def delete_book():
         """Удаление книги."""
+
+        # выведем все записи, для выбора
+        records = Library.get_records()
+        if not records:
+            print("Отсутствуют записи для удаления")
+            return
+
+        Library.output_records(records)
+
+        # получим выбор пользователя
+        sel = Library.get_select_items_menu(
+            {i + 1: None for i in range(len(records))},
+            "\nВыберите номер записи для удаления: ",
+        )
+
+        for item in reversed(sel):
+            records.pop(item - 1)
+
+        # сохраним изменения
+        with open(Library.FILE_NAME, encoding="utf-8", mode="w") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=list(records[0].__dict__.keys()),
+                quoting=csv.QUOTE_NONE,
+                delimiter=";",
+                dialect=csv.unix_dialect,
+            )
+            writer.writeheader()
+            for rec in records:
+                writer.writerow(asdict(rec))
+
+    @staticmethod
+    def change_status():
+        """Изменить статус."""
+
+        # выведем все записи, для выбора
+        records = Library.get_records()
+        if not records:
+            print("Отсутствуют записи для изменения")
+            return
+
+        Library.output_records(records)
+
         while True:
-            print("\nУкажите id:")
-            id = None
-            author = Library.get_non_empty_value("id:", id)
+            # получим выбор пользователя
+            sel = Library.get_select_items_menu(
+                {i + 1: None for i in range(len(records))},
+                "\nВыберите номер записи для изменения: ",
+            )
 
-            file_exist = os.path.exists(Library.FILE_NAME)
+            obj = records[sel[0] - 1]
+            # выберем что меняем
+            print("\nКакой статус установить:")
+            indx = 0
+            status_dict = {}
+            for status in Status:
+                indx = indx + 1
+                status_dict[indx] = status.value
+                print(f"{indx:1}: {status.value}")
 
-            with open(Library.FILE_NAME, encoding="utf-8", mode="a+") as f:
-                writer = csv.DictWriter(
-                    f,
-                    fieldnames=list(obj.__dict__.keys()),
-                    quoting=csv.QUOTE_NONE,
-                    delimiter=";",
-                    dialect=csv.unix_dialect,
-                )
-                if not file_exist:
-                    writer.writeheader()
-                writer.writerow(asdict(obj))
+            sel = Library.get_select_items_menu(
+                status_dict,
+                "\nВыберите номер: ",
+            )
+
+            obj.status = status_dict[sel[0]]
 
             sel = Library.get_select_items_menu(
                 {"y": None, "n": None},
-                "\nВвести еще одну запись(y/n)?: ",
+                "\nИзменить другую запись(y/n)?: ",
                 convert=False,
             )
 
             if sel[0] == "n":
-                break        
+                break
+
+        # сохраним изменения
+        with open(Library.FILE_NAME, encoding="utf-8", mode="w") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=list(records[0].__dict__.keys()),
+                quoting=csv.QUOTE_NONE,
+                delimiter=";",
+                dialect=csv.unix_dialect,
+            )
+            writer.writeheader()
+            for rec in records:
+                writer.writerow(asdict(rec))
 
     @staticmethod
     def show_menu():
