@@ -35,6 +35,15 @@ class Book:
         """Вывод записи."""
         return self.PRINT_TEMPLATE.format(**asdict(self))
 
+    def __eq__(self, other):
+        # в наших условиях сравниваем объект из базы со всеми заполнеными полями
+        # с частично заполненым
+        return isinstance(other, Book) and all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr, val in vars(other).items()
+            if val
+        )
+
 
 class Library:
     """Класс предоставляет основную функциональность по работе с библиотекой."""
@@ -55,7 +64,7 @@ class Library:
         0: ("Выход из программы", None),
         1: ("Добавление книги", "add_book"),
         2: ("Удаление книги", "delete_book"),
-        3: ("Поиск книги", "find_book"),
+        3: ("Поиск книги", "search_book"),
         4: ("Отображение всех книг", "show_all_books"),
         5: ("Изменение статуса книги", "change_status"),
     }
@@ -296,6 +305,51 @@ class Library:
             writer.writeheader()
             for rec in records:
                 writer.writerow(asdict(rec))
+
+    @staticmethod
+    def search_book():
+        """Поиск книг по параметрам."""
+
+        records = Library.get_records()
+        if not records:
+            print("Нет данных, нечего искать")
+        else:
+            while True:
+                print("\nВыберите критерии поиска:", "\n")
+                for key, item in Library.RECORD_MENU_KEY.items():
+                    print(key, "-", Library.RECORD_MENU_TEXT[item])
+                print("Можно выбрать несколько пунктов, через пробел")
+
+                sel_items = Library.get_select_items_menu(
+                    Library.RECORD_MENU_KEY, "\nВыберите пункт(ы) меню: "
+                )
+
+                #  сформируем перечень пунктов для заполнения
+                dict_search = {}
+                for item in sel_items:
+                    dict_search[Library.RECORD_MENU_KEY[item]] = None
+
+                for item in dict_search:
+                    dict_search[item] = input(
+                        f"Введите {Library.RECORD_MENU_TEXT[item]}: "
+                    )
+
+                result = []
+                shablon = Book(**dict_search)
+                result = [rec for rec in records if rec == shablon]
+
+                print(f"\nНайдено {len(result)} соответствий:")
+                if len(result):
+                    Library.output_records(result)
+
+                sel = Library.get_select_items_menu(
+                    {"y": None, "n": None},
+                    "\nХотите продолжить поиск(y/n)?: ",
+                    convert=False,
+                )
+
+                if sel[0] == "n":
+                    break
 
     @staticmethod
     def show_menu():
