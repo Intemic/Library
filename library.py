@@ -36,8 +36,8 @@ class Book:
         return self.PRINT_TEMPLATE.format(**asdict(self))
 
     def __eq__(self, other):
-        # в наших условиях сравниваем объект из базы со всеми заполнеными полями
-        # с частично заполненым
+        # в наших условиях сравниваем объект из базы со всеми заполнеными
+        # полями с частично заполненым
         return isinstance(other, Book) and all(
             getattr(self, attr) == getattr(other, attr)
             for attr, val in vars(other).items()
@@ -46,7 +46,7 @@ class Book:
 
 
 class Library:
-    """Класс предоставляет основную функциональность по работе с библиотекой."""
+    """Класс предоставляет основную функцион. по работе с библиотекой."""
 
     # имя файла с данными
     FILE_NAME = "library.txt"
@@ -229,25 +229,20 @@ class Library:
 
         # получим выбор пользователя
         sel = Library.get_select_items_menu(
-            {i + 1: None for i in range(len(records))},
+            {int(rec.id): None for rec in records},
             "\nВыберите id записи для удаления: ",
         )
 
         shablon = Book(id=sel[0])
-        find_obj = False
-        for rec in records:
+        obj_del = None
+        for indx, rec in enumerate(records):
             if rec == shablon:
-                find_obj = True
-                records.pop(item - 1)
+                obj_del = records.pop(indx)
                 exit
 
-        # result = [rec for rec in records if rec == shablon]
-        # if not len(result):
-        #     print("Не найдены данные для удаления")
-        #     return    
-
-        # for item in reversed(sel):
-        #     records.pop(item - 1)
+        if not obj_del:
+            print("Не найдены данные для удаления")
+            return
 
         # сохраним изменения
         with open(Library.FILE_NAME, encoding="utf-8", mode="w") as f:
