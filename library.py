@@ -179,6 +179,7 @@ class Library:
     @staticmethod
     def add_book():
         """Добавление новой записи."""
+
         while True:
             print("\nВведите следующие данные:")
             title, author, year = None, None, None
@@ -229,11 +230,24 @@ class Library:
         # получим выбор пользователя
         sel = Library.get_select_items_menu(
             {i + 1: None for i in range(len(records))},
-            "\nВыберите номер записи для удаления: ",
+            "\nВыберите id записи для удаления: ",
         )
 
-        for item in reversed(sel):
-            records.pop(item - 1)
+        shablon = Book(id=sel[0])
+        find_obj = False
+        for rec in records:
+            if rec == shablon:
+                find_obj = True
+                records.pop(item - 1)
+                exit
+
+        # result = [rec for rec in records if rec == shablon]
+        # if not len(result):
+        #     print("Не найдены данные для удаления")
+        #     return    
+
+        # for item in reversed(sel):
+        #     records.pop(item - 1)
 
         # сохраним изменения
         with open(Library.FILE_NAME, encoding="utf-8", mode="w") as f:
