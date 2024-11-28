@@ -134,10 +134,11 @@ class Library:
         while not value:
             try:
                 value = int(input(text).strip())
-                if min_value and value < min_value:
-                    raise BadMinValue
-                if max_value and value > max_value:
-                    raise BadMaxValue
+                if value:
+                    if min_value and value < min_value:
+                        raise BadMinValue
+                    if max_value and value > max_value:
+                        raise BadMaxValue
             except BadMinValue:
                 value = None
                 print(f"Значение не может быть меньше {min_value}")
@@ -243,6 +244,8 @@ class Library:
         if not obj_del:
             print("Не найдены данные для удаления")
             return
+        else:
+            print("Книга удалена")
 
         # сохраним изменения
         with open(Library.FILE_NAME, encoding="utf-8", mode="w") as f:
